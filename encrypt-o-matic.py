@@ -3,7 +3,7 @@
 import email, email.message, email.mime.message, email.mime.multipart, email.mime.application
 import smtplib
 import gnupg
-import quopri
+
 
 smtp_from = 'toto@example.com'
 smtp_rcpt = 'toto@example.com'
@@ -31,18 +31,17 @@ controlpart.set_payload('blabla')
 ciphermsg = email.message.Message()
 ciphermsg.set_payload(encryptedbody)
 cipher = email.mime.message.MIMEMessage(ciphermsg)
-cipher.add_header('Content-Transfer-Encoding', 'quoted-printable')
 cipher.add_header('Content-Disposition', 'inline')
-cipher.set_payload(quopri.encodestring(cleartext))
+cipher.set_payload(cleartext)
 
 innermsg = email.message.Message()
 innermsg.set_payload(encryptedbody)
 inner = email.mime.application.MIMEApplication(innermsg, 'octet-stream')
 
 gpg = gnupg.GPG()
-encryptedmsg = gpg.encrypt(cipher.as_string(), [smtp_rcpt], armor=False).data
+encryptedmsg = str(gpg.encrypt(cipher.as_string(), [smtp_rcpt]))
 
-inner.set_payload(encryptedmsg.encode('base64'))
+inner.set_payload(encryptedmsg)
 
 
 outer.attach(controlpart)
