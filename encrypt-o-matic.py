@@ -26,7 +26,7 @@ def clean_subject(s):
     
 
 smtp_from = 'toto@example.com'
-smtp_rcpt = 'toto@example.com'
+smtp_rcpt = ['toto@example.com', 'tata@example.com']
 
 cleartext = ''.join(open('mail').readlines())
 original = email.message_from_string(cleartext)
@@ -82,7 +82,7 @@ inner = email.mime.application.MIMEApplication(innermsg, 'octet-stream')
 del inner['Content-Transfer-Encoding']
 
 gpg = gnupg.GPG()
-encryptedmsg = str(gpg.encrypt(cipher.as_string(), [smtp_rcpt]))
+encryptedmsg = str(gpg.encrypt(cipher.as_string(), smtp_rcpt))
 
 inner.set_payload(encryptedmsg)
 
