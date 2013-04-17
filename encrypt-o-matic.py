@@ -9,6 +9,7 @@ import gnupg
 import md5
 import string
 import re
+import sys
 
 my_hostname = '%s.%s' % ('encrypted', socket.gethostname())
 
@@ -28,8 +29,7 @@ def clean_subject(s):
 smtp_from = 'toto@example.com'
 smtp_rcpt = ['toto@example.com', 'tata@example.com']
 
-cleartext = ''.join(open('mail').readlines())
-original = email.message_from_string(cleartext)
+original = email.message_from_fp(sys.stdin)
 original_subject = original['Subject']
 original_to      = original['To']
 original_from    = original['From']
