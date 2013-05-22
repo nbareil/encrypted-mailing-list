@@ -6,30 +6,46 @@ import email, email.message, email.mime.message, email.mime.multipart, email.mim
 import smtplib
 import socket
 import gnupg
-import md5
+import hashlib
 import string
 import re
 import sys
 
+SECRET_FILE = 'secretkey'
+RCPTS_LIST_FILE = 'recipients.txt' # one email address per line
+FROM_ADDR_FILE  = 'from.txt'       # one line containing FROM address
+reply_to = string.strip(open('replyto.txt').readline())
+
+try:
+    SECRET_KEY = string.strip(open(SECRET_FILE).readline())
+except:
+    SECRET_KEY = open('/dev/urandom').read(64)
+    open(SECRET_FILE, 'w+').write(SECRET_KEY)
+    
+
 my_hostname = '%s.%s' % ('encrypted', socket.gethostname())
 
+
 def h(s):
-    return md5.new(s).hexdigest()
+    return hashlib.md5(SECRET_KEY + s).hexdigest()
+
 
 def hash_ref_if_needed(ref):
     if not ref.endswith(my_hostname):
-        ref = h(ref)
+        ref = '<%s@%s>' % (h(ref), my_hostname)
     return ref
+
 
 def clean_subject(s):
     r = re.compile(r'^(\s*(Re|Aw|TR|FW)\s*:\s*)*', re.IGNORECASE)
     return r.sub('', s)
-    
 
-smtp_from = 'toto@example.com'
-smtp_rcpt = ['toto@example.com', 'tata@example.com']
 
-original = email.message_from_fp(sys.stdin)
+smtp_from = open(FROM_ADDR_FILE).readline()
+smtp_rcpt = map(string.strip, open(RCPTS_LIST_FILE).readlines())
+
+cleartext = ''.join(sys.stdin.readlines())
+original = email.message_from_string(cleartext)
 original_subject = original['Subject']
 original_to      = original['To']
 original_from    = original['From']
@@ -44,7 +60,6 @@ if original_ref:
     masqueraded_ref     = map(hash_ref_if_needed,
                               map(string.strip,
                                   original_ref.split(',')))
-
 
 # Mail structure
 # ==============
@@ -64,8 +79,9 @@ outer.add_header('Subject', masqueraded_subject)
 outer.add_header('To', masqueraded_to)
 outer.add_header('From', masqueraded_from)
 outer.add_header('Message-ID', masqueraded_msgid)
+outer.add_header('Reply-To', reply_to)
 if original_ref:
-    outer.add_header('References', masqueraded_ref)
+    outer.add_header('References', ','.join(masqueraded_ref))
 
 controlpartmsg = email.message.Message()
 controlpart = email.mime.application.MIMEApplication(controlpartmsg, 'pgp-encrypted')
@@ -82,7 +98,8 @@ inner = email.mime.application.MIMEApplication(innermsg, 'octet-stream')
 del inner['Content-Transfer-Encoding']
 
 gpg = gnupg.GPG()
-encryptedmsg = str(gpg.encrypt(cipher.as_string(), smtp_rcpt))
+result = gpg.encrypt(cipher.as_string(), smtp_rcpt)
+encryptedmsg = str(result)
 
 inner.set_payload(encryptedmsg)
 
