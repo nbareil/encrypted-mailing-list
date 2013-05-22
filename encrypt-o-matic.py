@@ -68,6 +68,8 @@ outer.add_header('Subject', masqueraded_subject)
 outer.add_header('To', masqueraded_to)
 outer.add_header('From', masqueraded_from)
 outer.add_header('Message-ID', masqueraded_msgid)
+outer.add_header('Mail-Followup-To', reply_to)
+outer.add_header('Mail-Reply-To', reply_to)
 outer.add_header('Reply-To', reply_to)
 
 controlpartmsg = email.message.Message()
