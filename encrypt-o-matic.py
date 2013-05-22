@@ -30,12 +30,6 @@ def h(s):
     return hashlib.md5(SECRET_KEY + s).hexdigest()
 
 
-def hash_ref_if_needed(ref):
-    if not ref.endswith(my_hostname):
-        ref = '<%s@%s>' % (h(ref), my_hostname)
-    return ref
-
-
 def clean_subject(s):
     r = re.compile(r'^(\s*(Re|Aw|TR|FW)\s*:\s*)*', re.IGNORECASE)
     return r.sub('', s)
@@ -50,16 +44,11 @@ original_subject = original['Subject']
 original_to      = original['To']
 original_from    = original['From']
 original_msgid   = original['Message-ID']
-original_ref     = original['References']
 
 masqueraded_to      = h(original_to)
 masqueraded_from    = h(original_from)
 masqueraded_subject = h(clean_subject(original_subject))
 masqueraded_msgid   = '<%s@%s>' % (h(original_msgid), my_hostname)
-if original_ref:
-    masqueraded_ref     = map(hash_ref_if_needed,
-                              map(string.strip,
-                                  original_ref.split(',')))
 
 # Mail structure
 # ==============
@@ -80,8 +69,6 @@ outer.add_header('To', masqueraded_to)
 outer.add_header('From', masqueraded_from)
 outer.add_header('Message-ID', masqueraded_msgid)
 outer.add_header('Reply-To', reply_to)
-if original_ref:
-    outer.add_header('References', ','.join(masqueraded_ref))
 
 controlpartmsg = email.message.Message()
 controlpart = email.mime.application.MIMEApplication(controlpartmsg, 'pgp-encrypted')
