@@ -44,10 +44,15 @@ original_subject = original['Subject']
 original_to      = original['To']
 original_from    = original['From']
 original_msgid   = original['Message-ID']
+original_ref     = original.get('References', None)
+original_irt     = original.get('In-Reply-To', None)
 
 masqueraded_to      = h(original_to)
 masqueraded_from    = h(original_from)
-masqueraded_subject = h(clean_subject(original_subject))
+if not my_hostname in original_irt:
+    masqueraded_subject = h(clean_subject(original_subject))
+else:
+    masqueraded_subject = original_subject
 masqueraded_msgid   = '<%s@%s>' % (h(original_msgid), my_hostname)
 
 # Mail structure
@@ -69,6 +74,10 @@ outer.add_header('To', masqueraded_to)
 outer.add_header('From', masqueraded_from)
 outer.add_header('Message-ID', masqueraded_msgid)
 outer.add_header('Mail-Followup-To', reply_to)
+if original_ref:
+    outer.add_header('References', original_ref)
+if original_irt:
+    outer.add_header('In-Reply-To', original_irt)
 outer.add_header('Mail-Reply-To', reply_to)
 outer.add_header('Reply-To', reply_to)
 
